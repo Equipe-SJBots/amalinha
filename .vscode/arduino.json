@@ -1,5 +1,7 @@
 {
     "board": "arduino:avr:uno",
     "programmer": "avrisp",
-    "port": "COM3"
+    "port": "COM6",
+    "output": "../ArduinoOutput",
+    "sketch": "Files\\Código 2\\Line_follower_5_channel\\Line_follower_5_channel.ino"
 }
