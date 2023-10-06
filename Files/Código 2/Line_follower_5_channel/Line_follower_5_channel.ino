@@ -9,12 +9,23 @@
 
 bool middle_sensor;
 
+int left_most;
+int left;
+int middle;
+int right;
+int right_most;
+int middle_left;
+int middle_right;
+int left_left_middle;
+int middle_right_right;
+int stop;
+
 //**********5 Channel IR Sensor Connection**********//
 #define ir1 A0
 #define ir2 A1
-#define ir3 A2
-#define ir4 A3
-#define ir5 A4
+#define ir3 A3
+#define ir4 A4
+#define ir5 A5
 //*************************************************//
 
 int motor_speed = 255;
@@ -64,7 +75,7 @@ void loop() {
         digitalWrite(m4, LOW);
     }
 
-    if (left_sensor) { // if only left sensor detects black line
+    if (left) { // if only left sensor detects black line
         // going right with full speed
         analogWrite(e1, motor_speed); // you can adjust the speed of the motors from 0-255
         analogWrite(e2, motor_speed); // you can adjust the speed of the motors from 0-255
