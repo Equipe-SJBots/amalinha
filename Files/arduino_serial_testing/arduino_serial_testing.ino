@@ -1,18 +1,20 @@
 unsigned long previousMillis;
+int variable1 = 0;
+float variable2 = 0.0;
 
-void setup() {
+void setup()
+{
   Serial.begin(9600);
 }
 
-void loop() {
-  if (Serial.available() > 0) {
-    while (Serial.available() > 0) {
-      Serial.write(Serial.read());
-    }
-    Serial.println();
-  }
-  // else if (millis() - previousMillis >= 1000) {
-  //   previousMillis = millis();
-  //   Serial.println(random(100));
-  // }
+void loop()
+{
+  variable1++;
+  variable2 += 0.1;
+  Serial.print("Herick:");
+  Serial.print(variable1);
+  Serial.print(",");
+  Serial.print("juau:");
+  Serial.println(variable2);
+  delay(1000);
 }
