@@ -1,12 +1,12 @@
 //**********5 Channel IR Sensor Connection**********//
-#define ir1 A0
-#define ir2 A1
-#define ir3 A2
-#define ir4 A3
-#define ir5 A4
-#define ir6 A5
-#define ir7 A6
-#define ir8 A7
+#define ir1 A8
+#define ir2 A9
+#define ir3 A10
+#define ir4 A11
+#define ir5 A12
+#define ir6 A13
+#define ir7 A14
+#define ir8 A15
 
 //*************************************************//
 
@@ -15,6 +15,7 @@ int motor_speed = 255;
 void setup()
 {
   Serial.begin(9600);
+  pinMode(11, OUTPUT);
   pinMode(ir1, INPUT);
   pinMode(ir2, INPUT);
   pinMode(ir3, INPUT);
@@ -23,6 +24,7 @@ void setup()
   pinMode(ir6, INPUT);
   pinMode(ir7, INPUT);
   pinMode(ir8, INPUT);
+  digitalWrite(11, HIGH);
 }
 
 void myPrint(String label, int value)
