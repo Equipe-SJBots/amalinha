@@ -133,7 +133,7 @@ void debugImprimirVelocidades (){
 
 void definirVelocidadeMotores (float Motor1Velocidade1, float Motor1Velocidade2, float Motor2Velocidade1, float Motor2Velocidade2) { // Define a velocidade dos motores
     int velocidadeBase = 255;
-    float reducao = 0.12;
+    float reducao = 0.15;
     velocidadeMotores[0] = Motor1Velocidade1 * velocidadeBase * (reducao + 0.0);
     velocidadeMotores[1] = Motor1Velocidade2 * velocidadeBase * (reducao + 0.0);
     velocidadeMotores[2] = Motor2Velocidade1 * velocidadeBase * (reducao + 0.0);
@@ -149,16 +149,16 @@ void definirVelocidade()
 {
     switch (movimentoEscolhido) {
     case 1: // GirarDireitaCompleto
-        definirVelocidadeMotores(0.0, 0.3, 0.3, 0.0);
+        definirVelocidadeMotores(0.0, 1.0, 1.0, 0.0);
         break;
     case 2: // GirarDireita
-        definirVelocidadeMotores(0.0, 0.0, 0.3, 0.0);
+        definirVelocidadeMotores(0.0, 0.0, 1.0, 0.0);
         break;
     case 8: // GirarEsquerda
-        definirVelocidadeMotores(0.3, 0.0, 0.0, 0.0);
+        definirVelocidadeMotores(1.0, 0.0, 0.0, 0.0);
         break;
     case 16: // GirarEsquerdaCompleto
-        definirVelocidadeMotores(0.3, 0.0, 0.0, 0.3);
+        definirVelocidadeMotores(1.0, 0.0, 0.0, 1.0);
         break;
     case 4: // moverParaFrente
         definirVelocidadeMotores(0.0, 1.0, 0.0, 1.0);
