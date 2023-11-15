@@ -8,18 +8,28 @@
 
 // Define os pinos dos sensores
 const int numSensores = 5;
+
+/*
+| Arduino  | S1 | S2 | S3 | S4 | S5 |
+| -------- | -- | -- | -- | -- | -- |
+| Amalinha | A0 | A1 | A2 | A3 | A4 |
+| Teste    | A4 | A3 | A2 | A1 | A0 |
+*/
 // int pinosSensores[numSensores] = {A0, A1, A2, A3, A4}; // TESTE
 int pinosSensores[numSensores] = {A4, A3, A2, A1, A0}; // AMALINHA
 
 
 // Define os pinos dos motores
 const int numMotores = 2;
-int pinosMotores[2*numMotores] = {4, 3, 7, 6};
+int pinosMotores[2*numMotores] = {7, 6, 4, 3};
 /*
-IN1 | 7 | MTR A + | Direita
-IN2 | 6 | MTR A - | Direita
-IN3 | 4 | MTR B + | Esquerda
-IN4 | 3 | MTR B - | Esquerda
+| Arduino | Ponte H                 | Local do Motor |
+| Pino    | Entrada | Motor | Sinal | Local do Motor |
+| ------- | ------- | ----- | ----- | -------------- |
+| 7       | IN1     | A     | +     | Direita        |
+| 6       | IN2     | A     | -     | Direita        |
+| 4       | IN3     | B     | +     | Esquerda       |
+| 3       | IN4     | B     | -     | Esquerda       |
 */
 
 // Define o pino do sensor de início
@@ -54,6 +64,7 @@ void definirPinosMotores()
 void aguardarSensorDeInicio()
 {
     // Aguarda o sensor de início ser pressionado
+    pinMode(pinoSensorDeInicio, INPUT);
     while (digitalRead(pinoSensorDeInicio) == LOW)
     {
         delay(10);
@@ -71,6 +82,14 @@ void setup()
     // aguardarSensorDeInicio();
 }
 
+void loop()
+{
+    lerSensores();
+    definirMovimento();
+    definirVelocidade();
+    movimentar();
+}
+
 void lerSensores()
 {
     // Lê os sensores e armazena os valores em um vetor
@@ -80,12 +99,15 @@ void lerSensores()
     }
 }
 
-void loop()
-{
-    lerSensores();
-    definirMovimento();
-    definirVelocidade();
-    movimentar();
+void debugLeituraLinha(){
+    for (int i = 0; i < numSensores; i++)
+    {
+        Serial.print(!leituras[i]);
+        Serial.print("\t");
+    }
+    Serial.print("\t");
+    Serial.print(movimentoEscolhido);
+    Serial.print("\n");
 }
 
 void definirMovimento()
@@ -97,79 +119,57 @@ void definirMovimento()
     int s4 = leituras[3]; // Right Sensor
     int s5 = leituras[4]; // Right Most Sensor
 
-    int sum = s1 + s2 + s3 + s3 + s4 + s5;
     movimentoEscolhido = !s1 * 1 + !s2 * 2 + !s3 * 4 + !s4 * 8 + !s5 * 16;
-
-    // int left_most = (sum == 4) && (s1 == 0);
-    // int left = (sum == 4) && (s2 == 0);
-    // int middle = (sum == 4) && (s3 == 0);
-    // int right = (sum == 4) && (s4 == 0);
-    // int right_most = (sum == 4) && (s5 == 0);
-
-    // int middle_left = (sum == 3) && (s2 == 0) && (s3 == 0);
-    // int middle_right = (sum == 3) && (s3 == 0) && (s4 == 0);
-
-    // int left_left_middle = (sum == 2) && (s4 == 1) && (s5 == 1);
-    // int middle_right_right = (sum == 2) && (s1 == 1) && (s2 == 1);
-
-    // int stop = sum == 0;
-
-    // int lm = left_most;
-    // int lf = left;
-    // int mf = middle;
-    // int rt = right;
-    // int rm = right_most;
-
-
-    Serial.print(s1);
-    Serial.print("\t");
-    Serial.print(s2);
-    Serial.print("\t");
-    Serial.print(s3);
-    Serial.print("\t");
-    Serial.print(s4);
-    Serial.print("\t");
-    Serial.print(s5);
-    Serial.print("\t");
-    Serial.print("\t\t");
-    Serial.print(sum);
-    Serial.print("\t\t");
-    Serial.print(movimentoEscolhido);
-    Serial.println();
+    // debugLeituraLinha();
 }
 
-void definirVelocidadeMotores (int Motor1Velocidade1, int Motor1Velocidade2, int Motor2Velocidade1, int Motor2Velocidade2) { // Define a velocidade dos motores
-    velocidadeMotores[0] = Motor1Velocidade1;
-    velocidadeMotores[1] = Motor1Velocidade2;
-    velocidadeMotores[2] = Motor2Velocidade1;
-    velocidadeMotores[3] = Motor2Velocidade2;
+void debugImprimirVelocidades (){
+    for (int i = 0; i < 2*numMotores; i++){
+        Serial.print(velocidadeMotores[i]);
+        Serial.print("\t");
+    }
+    Serial.print("\n");
+}
+
+void definirVelocidadeMotores (float Motor1Velocidade1, float Motor1Velocidade2, float Motor2Velocidade1, float Motor2Velocidade2) { // Define a velocidade dos motores
+    int velocidadeBase = 255;
+    float reducao = 0.12;
+    velocidadeMotores[0] = Motor1Velocidade1 * velocidadeBase * (reducao + 0.0);
+    velocidadeMotores[1] = Motor1Velocidade2 * velocidadeBase * (reducao + 0.0);
+    velocidadeMotores[2] = Motor2Velocidade1 * velocidadeBase * (reducao + 0.0);
+    velocidadeMotores[3] = Motor2Velocidade2 * velocidadeBase * (reducao + 0.0);
+    // velocidadeMotores[0] = 0;
+    // velocidadeMotores[1] = 0; //29 foi
+    // velocidadeMotores[2] = 0;
+    // velocidadeMotores[3] = 0; //37 foi
+    // debugImprimirVelocidades();
 }
 
 void definirVelocidade()
 {
     switch (movimentoEscolhido) {
     case 1: // GirarDireitaCompleto
-        definirVelocidadeMotores(0, 255, 255, 0);
+        definirVelocidadeMotores(0.0, 0.3, 0.3, 0.0);
         break;
     case 2: // GirarDireita
-        definirVelocidadeMotores(0, 0, 255, 0);
-        break;
-    case 4: // moverParaFrente
-        definirVelocidadeMotores(255, 0, 255, 0);
+        definirVelocidadeMotores(0.0, 0.0, 0.3, 0.0);
         break;
     case 8: // GirarEsquerda
-        definirVelocidadeMotores(255, 0, 0, 0);
+        definirVelocidadeMotores(0.3, 0.0, 0.0, 0.0);
         break;
     case 16: // GirarEsquerdaCompleto
-        definirVelocidadeMotores(255, 0, 0, 255);
+        definirVelocidadeMotores(0.3, 0.0, 0.0, 0.3);
+        break;
+    case 4: // moverParaFrente
+        definirVelocidadeMotores(0.0, 1.0, 0.0, 1.0);
         break;
     default: // parar
-        definirVelocidadeMotores(100, 0, 100, 0);
+        definirVelocidadeMotores(0.0, 0.0, 0.0, 0.0);
         break;
     }
 }
 
-void printMovimentoMotor(){
+void debugMovimentoMotor(){
     int i = 0;
     Serial.print("pino:");
     Serial.print(pinosMotores[i+0]);
@@ -192,7 +192,7 @@ void printMovimentoMotor(){
 
 void movimentar()
 {
-    printMovimentoMotor();
+    // debugMovimentoMotor();
     // Movimenta os motores com base no movimento escolhido
     for (int i = 0; i < 2*numMotores; i++)
     {
