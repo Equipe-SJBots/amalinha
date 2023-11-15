@@ -1,9 +1,9 @@
 /*
-Esse código é referente a um robô seguidor de linha.
-Ele utiliza o módulo ir TCRT5000 com 5 sensores infravermelhos e dois motores DC N20.
-O robô possui um sensor de início, também Infravermelho, que é utilizado para iniciar o percurso.
-No Setup, primeiro o código define os pinos dos sensores e motores, depois aguarda o sensor de início ser pressionado.
-No Loop, o código lê os sensores, define o movimento do robô com base nas leituras e movimenta os motores.
+    Esse código é referente a um robô seguidor de linha.
+    Ele utiliza o módulo ir TCRT5000 com 5 sensores infravermelhos e dois motores DC N20.
+    O robô possui um sensor de início, também Infravermelho, que é utilizado para iniciar o percurso.
+    No Setup, primeiro o código define os pinos dos sensores e motores, depois aguarda o sensor de início ser pressionado.
+    No Loop, o código lê os sensores, define o movimento do robô com base nas leituras e movimenta os motores.
 */
 
 // Define os pinos dos sensores
@@ -23,7 +23,7 @@ int leituras[numSensores];
 // Define a variável de escolha para movimentação dos motores
 int movimentoEscolhido = 0;
 
-void definirPinosSensores(numSensores, pinosSensores[numSensores])
+void definirPinosSensores()
 {
     // Configura os pinos dos sensores como entrada
     for (int i = 0; i < numSensores; i++)
@@ -32,7 +32,7 @@ void definirPinosSensores(numSensores, pinosSensores[numSensores])
     }
 }
 
-void definirPinosMotores(numMotores, pinosMotores[numMotores])
+void definirPinosMotores()
 {
     // Configura os pinos dos motores como saída
     for (int i = 0; i < numMotores; i++)
@@ -41,7 +41,7 @@ void definirPinosMotores(numMotores, pinosMotores[numMotores])
     }
 }
 
-void aguardarSensorDeInicio(pinoSensorDeInicio)
+void aguardarSensorDeInicio()
 {
     // Aguarda o sensor de início ser pressionado
     while (digitalRead(pinoSensorDeInicio) == LOW)
@@ -53,30 +53,31 @@ void aguardarSensorDeInicio(pinoSensorDeInicio)
 void setup()
 {
     // Executa apenas uma vez
+    Serial.begin(9600); // open the serial port at 9600 bps:
     // primeiro definindo os pinos dos sensores e motores
-    definirPinosSensores(numSensores, pinosSensores);
-    definirPinosMotores(numMotores, pinosMotores);
+    definirPinosSensores();
+    definirPinosMotores();
     // Depois aguardando o sensor de início
-    aguardarSensorDeInicio(pinoSensorDeInicio);
+    // aguardarSensorDeInicio();
 }
 
-void lerSensores(numSensores, pinosSensores[numSensores])
+void lerSensores()
 {
     // Lê os sensores e armazena os valores em um vetor
     for (int i = 0; i < numSensores; i++)
     {
-        leituras[i] = digitalRead(pinosSensores[i]);
+        leituras[i] = analogRead(pinosSensores[i]);
     }
 }
 
 void loop()
 {
-    lerSensores(numSensores, pinosSensores[numSensores]);
-    definirMovimento(numSensores, leituras);
-    movimentar(numMotores, pinosMotores[numMotores]);
+    lerSensores();
+    definirMovimento();
+    // movimentar();
 }
 
-void definirMovimento(numSensores, leituras[numSensores])
+void definirMovimento()
 {
     // Define o movimento do robô com base nas leituras dos sensores
     int s1 = leituras[0]; // Left Most Sensor
@@ -107,5 +108,21 @@ void definirMovimento(numSensores, leituras[numSensores])
     int rt = right;
     int rm = right_most;
 
-    int movimentoFinal = left_most * 1 + left * 2 + middle * 4 + right * 8 + right_most * 16;
+    int movimentoFinal = !s1*1 + !s2*2 + !s3*4 + !s4*8 + !s5*16;
+
+    Serial.print(s1);
+    Serial.print("\t");
+    Serial.print(s2);
+    Serial.print("\t");
+    Serial.print(s3);
+    Serial.print("\t");
+    Serial.print(s4);
+    Serial.print("\t");
+    Serial.print(s5);
+    Serial.print("\t");
+    Serial.print("\t\t");
+    Serial.print(sum);
+    Serial.print("\t\t");
+    Serial.print(movimentoFinal);
+    Serial.println();
 }
