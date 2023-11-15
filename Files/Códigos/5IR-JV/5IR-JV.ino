@@ -8,11 +8,19 @@
 
 // Define os pinos dos sensores
 const int numSensores = 5;
-int pinosSensores[numSensores] = {A0, A1, A2, A3, A4};
+// int pinosSensores[numSensores] = {A0, A1, A2, A3, A4}; // TESTE
+int pinosSensores[numSensores] = {A4, A3, A2, A1, A0}; // AMALINHA
+
 
 // Define os pinos dos motores
 const int numMotores = 2;
-int pinosMotores[numMotores] = {10, 11};
+int pinosMotores[2*numMotores] = {4, 3, 7, 6};
+/*
+IN1 | 7 | MTR A + | Direita
+IN2 | 6 | MTR A - | Direita
+IN3 | 4 | MTR B + | Esquerda
+IN4 | 3 | MTR B - | Esquerda
+*/
 
 // Define o pino do sensor de início
 const int pinoSensorDeInicio = 12;
@@ -90,6 +98,7 @@ void definirMovimento()
     int s5 = leituras[4]; // Right Most Sensor
 
     int sum = s1 + s2 + s3 + s3 + s4 + s5;
+    movimentoEscolhido = !s1 * 1 + !s2 * 2 + !s3 * 4 + !s4 * 8 + !s5 * 16;
 
     // int left_most = (sum == 4) && (s1 == 0);
     // int left = (sum == 4) && (s2 == 0);
@@ -111,70 +120,82 @@ void definirMovimento()
     // int rt = right;
     // int rm = right_most;
 
-    movimentoEscolhido = !s1 * 1 + !s2 * 2 + !s3 * 4 + !s4 * 8 + !s5 * 16;
 
-    // Serial.print(s1);
-    // Serial.print("\t");
-    // Serial.print(s2);
-    // Serial.print("\t");
-    // Serial.print(s3);
-    // Serial.print("\t");
-    // Serial.print(s4);
-    // Serial.print("\t");
-    // Serial.print(s5);
-    // Serial.print("\t");
-    // Serial.print("\t\t");
-    // Serial.print(sum);
-    // Serial.print("\t\t");
-    // Serial.print(movimentoFinal);
-    // Serial.println();
+    Serial.print(s1);
+    Serial.print("\t");
+    Serial.print(s2);
+    Serial.print("\t");
+    Serial.print(s3);
+    Serial.print("\t");
+    Serial.print(s4);
+    Serial.print("\t");
+    Serial.print(s5);
+    Serial.print("\t");
+    Serial.print("\t\t");
+    Serial.print(sum);
+    Serial.print("\t\t");
+    Serial.print(movimentoEscolhido);
+    Serial.println();
 }
 
-void definirVelocidadeMotores (int velocidadeMotor1, int velocidadeMotor2) { // Define a velocidade dos motores
-    velocidadeMotores[0] = velocidadeMotor1;
-    velocidadeMotores[1] = velocidadeMotor2;
+void definirVelocidadeMotores (int Motor1Velocidade1, int Motor1Velocidade2, int Motor2Velocidade1, int Motor2Velocidade2) { // Define a velocidade dos motores
+    velocidadeMotores[0] = Motor1Velocidade1;
+    velocidadeMotores[1] = Motor1Velocidade2;
+    velocidadeMotores[2] = Motor2Velocidade1;
+    velocidadeMotores[3] = Motor2Velocidade2;
 }
 
 void definirVelocidade()
 {
     switch (movimentoEscolhido) {
     case 1: // GirarDireitaCompleto
-        definirVelocidadeMotores(0, 255);
+        definirVelocidadeMotores(0, 255, 255, 0);
         break;
     case 2: // GirarDireita
-        definirVelocidadeMotores(0, 255);
+        definirVelocidadeMotores(0, 0, 255, 0);
         break;
     case 4: // moverParaFrente
-        definirVelocidadeMotores(255, 255);
+        definirVelocidadeMotores(255, 0, 255, 0);
         break;
     case 8: // GirarEsquerda
-        definirVelocidadeMotores(255, 0);
+        definirVelocidadeMotores(255, 0, 0, 0);
         break;
     case 16: // GirarEsquerdaCompleto
-        definirVelocidadeMotores(255, 0);
+        definirVelocidadeMotores(255, 0, 0, 255);
         break;
     default: // parar
-        definirVelocidadeMotores(127, 127);
+        definirVelocidadeMotores(100, 0, 100, 0);
         break;
     }
 }
 
-void testeMovimentoMotor(){
+void printMovimentoMotor(){
+    int i = 0;
     Serial.print("pino:");
-    Serial.print(pinosMotores[0]);
+    Serial.print(pinosMotores[i+0]);
     Serial.print(", velocidade:");
-    Serial.print(velocidadeMotores[0]);
+    Serial.print(velocidadeMotores[i+0]);
     Serial.print("\tpino:");
-    Serial.print(pinosMotores[1]);
+    Serial.print(pinosMotores[i+1]);
     Serial.print(", velocidade:");
-    Serial.print(velocidadeMotores[1]);
+    Serial.print(velocidadeMotores[i+1]);
+    Serial.print("\t\tpino:");
+    Serial.print(pinosMotores[i+2]);
+    Serial.print(", velocidade:");
+    Serial.print(velocidadeMotores[i+2]);
+    Serial.print("\tpino:");
+    Serial.print(pinosMotores[i+3]);
+    Serial.print(", velocidade:");
+    Serial.print(velocidadeMotores[i+3]);
     Serial.print("\n");
 }
 
 void movimentar()
 {
-    testeMovimentoMotor();
+    printMovimentoMotor();
     // Movimenta os motores com base no movimento escolhido
-    analogWrite(pinosMotores[0], velocidadeMotores[0]);
-    analogWrite(pinosMotores[1], velocidadeMotores[1]);
+    for (int i = 0; i < 2*numMotores; i++)
+    {
+        analogWrite(pinosMotores[i], velocidadeMotores[i]);
+    }
 }
