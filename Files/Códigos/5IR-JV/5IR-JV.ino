@@ -46,19 +46,17 @@ int velocidadeMotores[2 * numMotores] = {0, 0, 0, 0};
 void setup () { // Executa apenas uma vez
     Serial.begin(9600); // open the serial port at 9600 bps
     // primeiro definindo os pinos dos sensores e motores
-    definirPinosSensores();
-    definirPinosMotores();
+    definirPinosSensoresEPinosMotores();
     // Depois aguardando o sensor de início
     // aguardarSensorDeInicio();
 }
 
-void definirPinosSensores () { // Configura os pinos dos sensores como entrada
+void definirPinosSensoresEPinosMotores () {
+    // Configura os pinos dos sensores como entrada
     for (int i = 0; i < numSensores; i++) {
         pinMode(pinosSensores[i], INPUT);
     }
-}
-
-void definirPinosMotores () { // Configura os pinos dos motores como saída
+    // Configura os pinos dos motores como saída
     for (int i = 0; i < numMotores; i++) {
         pinMode(pinosMotores[i], OUTPUT);
     }
@@ -66,8 +64,7 @@ void definirPinosMotores () { // Configura os pinos dos motores como saída
 
 void aguardarSensorDeInicio () {// Aguarda o sensor de início ser pressionado
     pinMode(pinoSensorDeInicio, INPUT);
-    while (digitalRead(pinoSensorDeInicio) == LOW)
-    {
+    while (digitalRead(pinoSensorDeInicio) == LOW) {
         delay(10);
     }
 }
@@ -77,33 +74,35 @@ void loop() {
     definirMovimento();
     definirVelocidade();
     movimentar();
+    // debugLeituraLinha();
+    // debugMovimentoMotor();
 }
 
 void lerSensores() { // Lê os sensores e armazena os valores em um vetor
-    for (int i = 0; i < numSensores; i++)
-    {
+    for (int i = 0; i < numSensores; i++) {
         leituras[i] = digitalRead(pinosSensores[i]);
     }
 }
 
 void definirMovimento () { // Define o movimento do robô com base nas leituras dos sensores
-    int s1 = leituras[0]; // Left Most Sensor
-    int s2 = leituras[1]; // Left Sensor
-    int s3 = leituras[2]; // Middle Sensor
-    int s4 = leituras[3]; // Right Sensor
-    int s5 = leituras[4]; // Right Most Sensor
+    int s1 = !leituras[0]; // Left Most Sensor
+    int s2 = !leituras[1]; // Left Sensor
+    int s3 = !leituras[2]; // Middle Sensor
+    int s4 = !leituras[3]; // Right Sensor
+    int s5 = !leituras[4]; // Right Most Sensor
 
-    movimentoEscolhido = !s1 * 1 + !s2 * 2 + !s3 * 4 + !s4 * 8 + !s5 * 16;
+    movimentoEscolhido = s1 * 1 + s2 * 2 + s3 * 4 + s4 * 8 + s5 * 16;
     // debugLeituraLinha();
 }
 
 void definirPercentualVelocidadeMotores (float M1V1, float M1V2, float M2V1, float M2V2) { // M = Motor; V = Velocidade;
     int velocidadeBase = 255;
-    float reducao = 0.15;
-    velocidadeMotores[0] = velocidadeBase * M1V1 * (reducao + 0.0);
-    velocidadeMotores[1] = velocidadeBase * M1V2 * (reducao + 0.0);
-    velocidadeMotores[2] = velocidadeBase * M2V1 * (reducao + 0.0);
-    velocidadeMotores[3] = velocidadeBase * M2V2 * (reducao + 0.0);
+    float reducao = 0.0;
+    float velocidadeLimitada = 1.0 - reducao;
+    velocidadeMotores[0] = velocidadeBase * M1V1 * (velocidadeLimitada - 0.0);
+    velocidadeMotores[1] = velocidadeBase * M1V2 * (velocidadeLimitada - 0.68);
+    velocidadeMotores[2] = velocidadeBase * M2V1 * (velocidadeLimitada - 0.0);
+    velocidadeMotores[3] = velocidadeBase * M2V2 * (velocidadeLimitada - 0.0);
     // velocidadeMotores[0] = 0;  
     // velocidadeMotores[1] = 0; //29 foi
     // velocidadeMotores[2] = 0;
@@ -114,23 +113,17 @@ void definirPercentualVelocidadeMotores (float M1V1, float M1V2, float M2V1, flo
 void definirVelocidade () { // Define as velocidades baseado no movimento escolhido
     switch (movimentoEscolhido) {
     case 1: // GirarDireitaCompleto
-        definirPercentualVelocidadeMotores(0.0, 1.0, 1.0, 0.0);
-        break;
+        definirPercentualVelocidadeMotores(0.0, 1.0, 1.0, 0.0); break;
     case 2: // GirarDireita
-        definirPercentualVelocidadeMotores(0.0, 0.0, 1.0, 0.0);
-        break;
+        definirPercentualVelocidadeMotores(0.0, 0.0, 1.0, 0.0); break;
     case 8: // GirarEsquerda
-        definirPercentualVelocidadeMotores(1.0, 0.0, 0.0, 0.0);
-        break;
+        definirPercentualVelocidadeMotores(1.0, 0.0, 0.0, 0.0); break;
     case 16: // GirarEsquerdaCompleto
-        definirPercentualVelocidadeMotores(1.0, 0.0, 0.0, 1.0);
-        break;
+        definirPercentualVelocidadeMotores(1.0, 0.0, 0.0, 1.0); break;
     case 4: // moverParaFrente
-        definirPercentualVelocidadeMotores(0.0, 1.0, 0.0, 1.0);
-        break;
+        definirPercentualVelocidadeMotores(0.0, 1.0, 0.0, 1.0); break;
     default: // parar
-        definirPercentualVelocidadeMotores(0.0, 0.0, 0.0, 0.0);
-        break;
+        definirPercentualVelocidadeMotores(0.0, 0.5, 0.0, 0.5); break;
     }
 }
 
