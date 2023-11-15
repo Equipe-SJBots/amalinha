@@ -207,8 +207,24 @@ void movimentar()
     }
 }
 
+
+
+
 void calculaErro(){
     erro = 0;
+
+    /*
+        |1|2|4|8|F|     |1|2|4|8|F|
+        |S|S|S|S|S|     |S|S|S|S|S|
+        |1|2|3|4|5|     |1|2|3|4|5|
+        |-|-|-|-|-|     |-|-|-|-|-|
+        | | |x| | |     | | | | | |
+        | | |X|X| |     | |X|X| | |
+        | | | |X| |     | |X| | | |
+        | | | |X|X|     |X|X| | | |
+        | | | | |X|     |X| | | | |
+    */
+
     switch (movimentoEscolhido) {
         case 01: erro = -2.00;  break;
         case 03: erro = -1.75;  break;
