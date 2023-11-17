@@ -6,6 +6,8 @@
     No Loop, o código lê os sensores, define o movimento do robô com base nas leituras e movimenta os motores.
 */
 
+// O sensor Ir retorna 1 quando vê branco.
+
 // Define os pinos dos sensores
 const int numSensores = 5;
 
@@ -18,6 +20,7 @@ const int numSensores = 5;
 // int pinosSensores[numSensores] = {A0, A1, A2, A3, A4}; // TESTE
 int pinosSensores[numSensores] = {A4, A3, A2, A1, A0}; // AMALINHA
 
+int linhaPreta = 1; // deve ser 1 se estiver lendo linha preta
 
 // Define os pinos dos motores
 const int numMotores = 2;
@@ -48,7 +51,7 @@ int velesq = 0, veldir = 0;
 int erro = 0, erroAnterior = 0;
 int PID = 0;
 int P = 0, I = 0, D = 0;
-int kP = 0, kI = 0, kD = 0;
+int kP = 1, kI = 1, kD = 1;
 
 void definirPinosSensores()
 {
@@ -72,7 +75,7 @@ void aguardarSensorDeInicio()
 {
     // Aguarda o sensor de início ser pressionado
     pinMode(pinoSensorDeInicio, INPUT);
-    while (digitalRead(pinoSensorDeInicio) == LOW)
+    while (digitalRead(pinoSensorDeInicio) == LOW) 
     {
         delay(10);
     }
@@ -93,6 +96,7 @@ void loop()
 {
     lerSensores();
     definirMovimento();
+    calcularPID();
     definirVelocidade();
     movimentar();
 }
@@ -100,16 +104,19 @@ void loop()
 void lerSensores()
 {
     // Lê os sensores e armazena os valores em um vetor
-    for (int i = 0; i < numSensores; i++)
-    {
+    // É esperado que apenas a linha lida esteja com o valor 1.
+    for (int i = 0; i < numSensores; i++) {
         leituras[i] = digitalRead(pinosSensores[i]);
+        if (linhaPreta) {
+            leituras[i] = !leituras[i];
+        }
     }
 }
 
 void debugLeituraLinha(){
     for (int i = 0; i < numSensores; i++)
     {
-        Serial.print(!leituras[i]);
+        Serial.print(leituras[i]);
         Serial.print("\t");
     }
     Serial.print("\t");
@@ -117,8 +124,7 @@ void debugLeituraLinha(){
     Serial.print("\n");
 }
 
-void definirMovimento()
-{
+void definirMovimento() {
     // Define o movimento do robô com base nas leituras dos sensores
     int s1 = leituras[0]; // Left Most Sensor
     int s2 = leituras[1]; // Left Sensor
@@ -126,16 +132,12 @@ void definirMovimento()
     int s4 = leituras[3]; // Right Sensor
     int s5 = leituras[4]; // Right Most Sensor
 
-    movimentoEscolhido = !s1 * 1 + !s2 * 2 + !s3 * 4 + !s4 * 8 + !s5 * 16;
+    movimentoEscolhido  = s1 * 10000;
+    movimentoEscolhido += s2 * 1000;
+    movimentoEscolhido += s3 * 100;
+    movimentoEscolhido += s4 * 10;
+    movimentoEscolhido += s5 * 1;
     // debugLeituraLinha();
-}
-
-void debugImprimirVelocidades (){
-    for (int i = 0; i < 2*numMotores; i++){
-        Serial.print(velocidadeMotores[i]);
-        Serial.print("\t");
-    }
-    Serial.print("\n");
 }
 
 void definirVelocidadeMotores (float Motor1Velocidade1, float Motor1Velocidade2, float Motor2Velocidade1, float Motor2Velocidade2) { // Define a velocidade dos motores
@@ -152,22 +154,21 @@ void definirVelocidadeMotores (float Motor1Velocidade1, float Motor1Velocidade2,
     // debugImprimirVelocidades();
 }
 
-void definirVelocidade()
-{
+void definirVelocidade() {
     switch (movimentoEscolhido) {
-    case 1: // GirarDireitaCompleto
+    case 00001: // GirarDireitaCompleto
         definirVelocidadeMotores(0.0, 1.0, 1.0, 0.0);
         break;
-    case 2: // GirarDireita
+    case 00010: // GirarDireita
         definirVelocidadeMotores(0.0, 0.0, 1.0, 0.0);
         break;
-    case 8: // GirarEsquerda
+    case 01000: // GirarEsquerda
         definirVelocidadeMotores(1.0, 0.0, 0.0, 0.0);
         break;
-    case 16: // GirarEsquerdaCompleto
+    case 10000: // GirarEsquerdaCompleto
         definirVelocidadeMotores(1.0, 0.0, 0.0, 1.0);
         break;
-    case 4: // moverParaFrente
+    case 00100: // moverParaFrente
         definirVelocidadeMotores(0.0, 1.0, 0.0, 1.0);
         break;
     default: // parar
@@ -175,6 +176,83 @@ void definirVelocidade()
         break;
     }
 }
+
+void movimentar()
+{
+    // debugMovimentoMotor();
+    // Movimenta os motores com base no movimento escolhido
+    for (int i = 0; i < 2*numMotores; i++)
+    {
+        analogWrite(pinosMotores[i], velocidadeMotores[i]);
+    }
+}
+
+void calculaErro(){
+    erro = 0;
+
+    /*
+        |1|2|4|8|F|     |1|2|4|8|F|
+        |S|S|S|S|S|     |S|S|S|S|S|
+        |1|2|3|4|5|     |1|2|3|4|5|
+        |-|-|-|-|-|     |-|-|-|-|-|
+        | | |x| | |     | | | | | |
+        | | |X|X| |     | |X|X| | |
+        | | | |X| |     | |X| | | |
+        | | | |X|X|     |X|X| | | |
+        | | | | |X|     |X| | | | |
+    */
+
+    switch (movimentoEscolhido) {
+        case 10000: erro = -2.00;  break;
+        case 11000: erro = -1.75;  break;
+        case 01000: erro = -1.50;  break;
+        case 01100: erro = -1.00;  break;
+        case 00100: erro = 0;      break;
+        case 00110: erro = 1.00;   break;
+        case 00010: erro = 1.50;   break;
+        case 00011: erro = 1.75;   break;
+        case 00001: erro = 2.00;   break;
+        default:    erro = 0.00;   break;
+    }
+}
+
+void calculaPID () {
+    calculaErro()
+//    if (erro == O) {
+//        I = 0;
+//    }
+    P = erro;
+    I = I + erro;
+    if (I > 255) {n
+        I = 255;
+    } else if (I < -255) {
+        I = -255;
+    }
+    D = erro - erroAnterior;
+    PID = (kP * P) + (kI * I) + (kD * D);
+    erroAnterior = erro;
+}
+
+
+
+void controle_motor () { //mudar aqui quando o sono passar 
+    if (PID >= 0) {
+        velesq = vel_B;
+        veldir = vel_A - PID;
+    } else {
+        velesq = vel_B + PID;
+        veldir = vel_A;
+    }
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+    analogWrite(PWM_A, veldir);
+    analogWrite(PWM_B, velesq);
+}
+
+// ======== DEBUGS ========
+
 
 void debugMovimentoMotor(){
     int i = 0;
@@ -197,76 +275,10 @@ void debugMovimentoMotor(){
     Serial.print("\n");
 }
 
-void movimentar()
-{
-    // debugMovimentoMotor();
-    // Movimenta os motores com base no movimento escolhido
-    for (int i = 0; i < 2*numMotores; i++)
-    {
-        analogWrite(pinosMotores[i], velocidadeMotores[i]);
+void debugImprimirVelocidades (){
+    for (int i = 0; i < 2*numMotores; i++){
+        Serial.print(velocidadeMotores[i]);
+        Serial.print("\t");
     }
-}
-
-
-
-
-void calculaErro(){
-    erro = 0;
-
-    /*
-        |1|2|4|8|F|     |1|2|4|8|F|
-        |S|S|S|S|S|     |S|S|S|S|S|
-        |1|2|3|4|5|     |1|2|3|4|5|
-        |-|-|-|-|-|     |-|-|-|-|-|
-        | | |x| | |     | | | | | |
-        | | |X|X| |     | |X|X| | |
-        | | | |X| |     | |X| | | |
-        | | | |X|X|     |X|X| | | |
-        | | | | |X|     |X| | | | |
-    */
-
-    switch (movimentoEscolhido) {
-        case 01: erro = -2.00;  break;
-        case 03: erro = -1.75;  break;
-        case 02: erro = -1.50;  break;
-        case 06: erro = -1.00;  break;
-        case 04: erro = 0;      break;
-        case 12: erro = 1.00;   break;
-        case 08: erro = 1.50;   break;
-        case 24: erro = 1.75;   break;
-        case 16: erro = 2.00;   break;
-    default:     erro = 0;      break;
-    }
-}
-
-void calculaPID () {
-    if (erro == O) {
-        I = 0;
-    }
-    P = erro;
-    I = I + erro;
-    if (I > 255) {
-        I = 255;
-    } else if (I < -255) {
-        I = -255;
-    }
-    D = erro - erroAnterior;
-    PID = (kP * P) + (kI * I) + (kD * D);
-    erroAnterior = erro;
-}
-
-void controle_motor () {
-    if (PID >= 0) {
-        velesq = vel_B;
-        veldir = vel_A - PID;
-    } else {
-        velesq = vel_B + PID;
-        veldir = vel_A;
-    }
-    digitalWrite(IN1, HIGH);
-    digitalWrite(IN2, LOW);
-    digitalWrite(IN3, HIGH);
-    digitalWrite(IN4, LOW);
-    analogWrite(PWM_A, veldir);
-    analogWrite(PWM_B, velesq);
+    Serial.print("\n");
 }
