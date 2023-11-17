@@ -6,6 +6,8 @@
     No Loop, o código lê os sensores, define o movimento do robô com base nas leituras e movimenta os motores.
 */
 
+#include <IRremote.h> // Inclusão de bibliotecass
+
 // O sensor Ir retorna 1 quando vê branco.
 
 // Define os pinos dos sensores
@@ -38,71 +40,75 @@ int pinosMotores[2*numMotores] = {7, 6, 4, 3};
 // Define o pino do sensor de início
 const int pinoSensorDeInicio = 12;
 
-// Define as variáveis para leitura dos sensores
-int leituras[numSensores];
-
-// Define a variável de escolha para movimentação dos motores
-int movimentoEscolhido = 0;
+int movimentoEscolhido = 0; // Define a variável de escolha para movimentação dos motores
+int leituras[numSensores]; // Define as variáveis para leitura dos sensores
 
 int velocidadeMotores[2 * numMotores] = {0, 0, 0, 0};
 
 int vel_A = 0, vel_B = 0;
 int velesq = 0, veldir = 0;
-int erro = 0, erroAnterior = 0;
-int PID = 0;
-int P = 0, I = 0, D = 0;
-int kP = 1, kI = 1, kD = 1;
+float erro = 0, erroAnterior = 0;
+float PID = 0;
+float P = 0, I = 0, D = 0;
+float kP = 3, kI = 1, kD = 1;
 
-void definirPinosSensores()
-{
-    // Configura os pinos dos sensores como entrada
-    for (int i = 0; i < numSensores; i++)
-    {
-        pinMode(pinosSensores[i], INPUT);
-    }
-}
-
-void definirPinosMotores()
-{
-    // Configura os pinos dos motores como saída
-    for (int i = 0; i < numMotores; i++)
-    {
-        pinMode(pinosMotores[i], OUTPUT);
-    }
-}
-
-void aguardarSensorDeInicio()
-{
-    // Aguarda o sensor de início ser pressionado
-    pinMode(pinoSensorDeInicio, INPUT);
-    while (digitalRead(pinoSensorDeInicio) == LOW) 
-    {
-        delay(10);
-    }
-}
-
-void setup()
-{
+void setup() {
     // Executa apenas uma vez
     Serial.begin(9600); // open the serial port at 9600 bps:
     // primeiro definindo os pinos dos sensores e motores
     definirPinosSensores();
     definirPinosMotores();
     // Depois aguardando o sensor de início
-    // aguardarSensorDeInicio();
+    aguardarSensorDeInicio();
 }
 
-void loop()
-{
+void loop () {
     lerSensores();
     definirMovimento();
     calcularPID();
-    definirVelocidade();
+    // definirVelocidade();
+    definirVelocidadePID();
     movimentar();
 }
 
-void lerSensores()
-{
+/* ============== FUNÇÕES SETUP ============== */
+
+
+void definirPinosSensores () { // Configura os pinos dos sensores como entrada
+    for (int i = 0; i < numSensores; i++) {
+        pinMode(pinosSensores[i], INPUT);
+    }
+}
+
+void definirPinosMotores () { // Configura os pinos dos motores como saída
+    for (int i = 0; i < numMotores; i++) {
+        pinMode(pinosMotores[i], OUTPUT);
+    }
+}
+
+void aguardarSensorDeInicio () { // Aguarda o sensor de início ser pressionado
+    const int pinoEnergiaReceptor = 13
+    const int pinoReceptor = 12;
+    IRrecv recIR(pinoReceptor);
+    decode_results resultado;
+
+    /* Daqui pra cima poderia ser externalizado */
+
+    pinMode(pinoEnergiaReceptor, OUTPUT);
+    pinMode(pinoReceptor, INPUT);
+
+    digitalWrite(pinoEnergiaReceptor, HIGH);
+
+    recIR.enableIRIn();// Inicializar receptor IR
+
+    while (!recIR.decode(&resultado)) {
+        delay(10);
+    }
+}
+
+/* ============== FUNÇÕES LOOP ============== */
+
+void lerSensores () {
     // Lê os sensores e armazena os valores em um vetor
     // É esperado que apenas a linha lida esteja com o valor 1.
     for (int i = 0; i < numSensores; i++) {
@@ -113,18 +119,8 @@ void lerSensores()
     }
 }
 
-void debugLeituraLinha(){
-    for (int i = 0; i < numSensores; i++)
-    {
-        Serial.print(leituras[i]);
-        Serial.print("\t");
-    }
-    Serial.print("\t");
-    Serial.print(movimentoEscolhido);
-    Serial.print("\n");
-}
 
-void definirMovimento() {
+void definirMovimento () {
     // Define o movimento do robô com base nas leituras dos sensores
     int s1 = leituras[0]; // Left Most Sensor
     int s2 = leituras[1]; // Left Sensor
@@ -140,13 +136,13 @@ void definirMovimento() {
     // debugLeituraLinha();
 }
 
-void definirVelocidadeMotores (float Motor1Velocidade1, float Motor1Velocidade2, float Motor2Velocidade1, float Motor2Velocidade2) { // Define a velocidade dos motores
+void definirVelocidadeMotores (float M1V1, float M1V2, float M2V1, float M2V2) { // Define a velocidade dos motores
     int velocidadeBase = 255;
     float reducao = 0.15;
-    velocidadeMotores[0] = Motor1Velocidade1 * velocidadeBase * (reducao + 0.0);
-    velocidadeMotores[1] = Motor1Velocidade2 * velocidadeBase * (reducao + 0.0);
-    velocidadeMotores[2] = Motor2Velocidade1 * velocidadeBase * (reducao + 0.0);
-    velocidadeMotores[3] = Motor2Velocidade2 * velocidadeBase * (reducao + 0.0);
+    velocidadeMotores[0] = M1V1 * velocidadeBase * (reducao + 0.0);
+    velocidadeMotores[1] = M1V2 * velocidadeBase * (reducao + 0.0);
+    velocidadeMotores[2] = M2V1 * velocidadeBase * (reducao + 0.0);
+    velocidadeMotores[3] = M2V2 * velocidadeBase * (reducao + 0.0);
     // velocidadeMotores[0] = 0;
     // velocidadeMotores[1] = 0; //29 foi
     // velocidadeMotores[2] = 0;
@@ -154,7 +150,7 @@ void definirVelocidadeMotores (float Motor1Velocidade1, float Motor1Velocidade2,
     // debugImprimirVelocidades();
 }
 
-void definirVelocidade() {
+void definirVelocidade () {
     switch (movimentoEscolhido) {
     case 00001: // GirarDireitaCompleto
         definirVelocidadeMotores(0.0, 1.0, 1.0, 0.0);
@@ -177,8 +173,7 @@ void definirVelocidade() {
     }
 }
 
-void movimentar()
-{
+void movimentar () {
     // debugMovimentoMotor();
     // Movimenta os motores com base no movimento escolhido
     for (int i = 0; i < 2*numMotores; i++)
@@ -187,21 +182,10 @@ void movimentar()
     }
 }
 
-void calculaErro(){
+/* ================ VERSÃO PID ABAIXO ================ */
+
+void calculaErro () {
     erro = 0;
-
-    /*
-        |1|2|4|8|F|     |1|2|4|8|F|
-        |S|S|S|S|S|     |S|S|S|S|S|
-        |1|2|3|4|5|     |1|2|3|4|5|
-        |-|-|-|-|-|     |-|-|-|-|-|
-        | | |x| | |     | | | | | |
-        | | |X|X| |     | |X|X| | |
-        | | | |X| |     | |X| | | |
-        | | | |X|X|     |X|X| | | |
-        | | | | |X|     |X| | | | |
-    */
-
     switch (movimentoEscolhido) {
         case 10000: erro = -2.00;  break;
         case 11000: erro = -1.75;  break;
@@ -253,6 +237,17 @@ void controle_motor () { //mudar aqui quando o sono passar
 
 // ======== DEBUGS ========
 
+
+void debugLeituraLinha(){
+    for (int i = 0; i < numSensores; i++)
+    {
+        Serial.print(leituras[i]);
+        Serial.print("\t");
+    }
+    Serial.print("\t");
+    Serial.print(movimentoEscolhido);
+    Serial.print("\n");
+}
 
 void debugMovimentoMotor(){
     int i = 0;
