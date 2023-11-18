@@ -26,7 +26,7 @@ int linhaPreta = 0; // deve ser 1 se estiver lendo linha preta
 
 // Define os pinos dos motores
 const int numMotores = 2;
-int pinosMotores[2*numMotores] = {7, 4, 6, 3};
+int pinosMotores[2*numMotores] = {4, 6, 3, 7};
 /*
 | Arduino | Ponte H                 | Local do Motor |
 | Pino    | Entrada | Motor | Sinal | Local do Motor |
@@ -44,7 +44,7 @@ int movimentoEscolhido = 0; // Define a variável de escolha para movimentação
 int leituras[numSensores]; // Define as variáveis para leitura dos sensores
 int velocidadeMotores[numMotores] = {0, 0};
 
-int baseSpeed = 60;
+int baseSpeed = 100;
 int vel_A = baseSpeed, vel_B = baseSpeed;
 int velesq = 0, veldir = 0;
 
@@ -52,8 +52,14 @@ int velesq = 0, veldir = 0;
 float erro = 0, erroAnterior = 0;
 float PID = 0;
 float P = 0, I = 0, D = 0;
-float kP = 1, kI = 1, kD = 1;
+float kP = 20, kI = 5, kD = 20;
 
+//Sensor de início
+
+const int pinoEnergiaReceptor = 13;
+const int pinoReceptor = 12;
+decode_results resultado;
+IRrecv recIR(pinoReceptor);
 
 
 void setup () {
@@ -61,9 +67,9 @@ void setup () {
     Serial.begin(9600); // open the serial port at 9600 bps:
     // primeiro definindo os pinos dos sensores e motores
     definirPinosSensores();
-    // definirPinosMotores();
+    definirPinosMotores();
     // Depois aguardando o sensor de início
-    // aguardarSensorDeInicio();
+    aguardarSensorDeInicio();
 }
 
 
@@ -73,7 +79,7 @@ void loop () {
     calcularPID();
     definirVelocidadePID();
     // definirVelocidade();
-    // movimentar();
+    movimentar();
     debugs();
 }
 
@@ -97,9 +103,6 @@ void definirPinosMotores () { // Configura os pinos dos motores como saída
 }
 
 void aguardarSensorDeInicio () { // Aguarda o sensor de início ser pressionado
-    const int pinoEnergiaReceptor = 13;
-    const int pinoReceptor = 12;
-    decode_results resultado;
 
     /* Daqui pra cima poderia ser externalizado */
 
@@ -108,7 +111,6 @@ void aguardarSensorDeInicio () { // Aguarda o sensor de início ser pressionado
 
     digitalWrite(pinoEnergiaReceptor, HIGH);
 
-    IRrecv recIR(pinoReceptor);
     recIR.enableIRIn();// Inicializar receptor IR
 
     // Serial.print("Aguardando IR\n");
@@ -157,45 +159,6 @@ void movimentar () {
     // Movimenta os motores com base no movimento escolhido
     for (int i = 0; i < numMotores; i++) {
         analogWrite(pinosMotores[i], velocidadeMotores[i]);
-    }
-}
-
-/* Velocidades Antigas */
-
-void definirVelocidadeMotores (float M1V1, float M1V2, float M2V1, float M2V2) { // Define a velocidade dos motores
-    int velocidadeBase = 255;
-    float reducao = 0.15;
-    velocidadeMotores[0] = M1V1 * velocidadeBase * (reducao + 0.0);
-    velocidadeMotores[1] = M1V2 * velocidadeBase * (reducao + 0.0);
-    velocidadeMotores[2] = M2V1 * velocidadeBase * (reducao + 0.0);
-    velocidadeMotores[3] = M2V2 * velocidadeBase * (reducao + 0.0);
-    // velocidadeMotores[0] = 0;
-    // velocidadeMotores[1] = 0; //29 foi
-    // velocidadeMotores[2] = 0;
-    // velocidadeMotores[3] = 0; //37 foi
-    // debugImprimirVelocidades();
-}
-
-void definirVelocidade () {
-    switch (movimentoEscolhido) {
-    case 00001: // GirarDireitaCompleto
-        definirVelocidadeMotores(0.0, 1.0, 1.0, 0.0);
-        break;
-    case 00010: // GirarDireita
-        definirVelocidadeMotores(0.0, 0.0, 1.0, 0.0);
-        break;
-    case 01000: // GirarEsquerda
-        definirVelocidadeMotores(1.0, 0.0, 0.0, 0.0);
-        break;
-    case 10000: // GirarEsquerdaCompleto
-        definirVelocidadeMotores(1.0, 0.0, 0.0, 1.0);
-        break;
-    case 00100: // moverParaFrente
-        definirVelocidadeMotores(0.0, 1.0, 0.0, 1.0);
-        break;
-    default: // parar
-        definirVelocidadeMotores(0.0, 0.0, 0.0, 0.0);
-        break;
     }
 }
 
@@ -248,12 +211,14 @@ void definirVelocidadePID () { // Define a velocidade dos motores
         velesq = vel_B + PID;
         veldir = vel_A;
     }
-    // velesq = PID;
 
-    // digitalWrite(IN1, HIGH);
-    // digitalWrite(IN2, LOW);
-    // digitalWrite(IN3, HIGH);
-    // digitalWrite(IN4, LOW);
+    if (velesq < 0) {
+      velesq = 0;
+    }
+    if (veldir < 0) {
+      veldir = 0;
+    }
+
     velocidadeMotores[0] = velesq;
     velocidadeMotores[1] = veldir;
     // analogWrite(PWM_A, veldir);
