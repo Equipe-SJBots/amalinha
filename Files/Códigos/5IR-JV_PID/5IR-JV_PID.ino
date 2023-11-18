@@ -1,4 +1,4 @@
-/*
+/*  # Explicação geral do código
     Esse código é referente a um robô seguidor de linha.
     Ele utiliza o módulo ir TCRT5000 com 5 sensores infravermelhos e dois motores DC N20.
     O robô possui um sensor de início, também Infravermelho, que é utilizado para iniciar o percurso.
@@ -22,11 +22,11 @@ const int numSensores = 5;
 // int pinosSensores[numSensores] = {A0, A1, A2, A3, A4}; // TESTE
 int pinosSensores[numSensores] = {A4, A3, A2, A1, A0}; // AMALINHA
 
-int linhaPreta = 1; // deve ser 1 se estiver lendo linha preta
+int linhaPreta = 0; // deve ser 1 se estiver lendo linha preta
 
 // Define os pinos dos motores
 const int numMotores = 2;
-int pinosMotores[2*numMotores] = {7, 6, 4, 3};
+int pinosMotores[2*numMotores] = {7, 4, 6, 3};
 /*
 | Arduino | Ponte H                 | Local do Motor |
 | Pino    | Entrada | Motor | Sinal | Local do Motor |
@@ -42,37 +42,44 @@ const int pinoSensorDeInicio = 12;
 
 int movimentoEscolhido = 0; // Define a variável de escolha para movimentação dos motores
 int leituras[numSensores]; // Define as variáveis para leitura dos sensores
+int velocidadeMotores[numMotores] = {0, 0};
 
-int velocidadeMotores[2 * numMotores] = {0, 0, 0, 0};
-
-int vel_A = 0, vel_B = 0;
+int baseSpeed = 60;
+int vel_A = baseSpeed, vel_B = baseSpeed;
 int velesq = 0, veldir = 0;
+
+// Variáveis PID
 float erro = 0, erroAnterior = 0;
 float PID = 0;
 float P = 0, I = 0, D = 0;
-float kP = 3, kI = 1, kD = 1;
+float kP = 1, kI = 1, kD = 1;
 
-void setup() {
+
+
+void setup () {
     // Executa apenas uma vez
     Serial.begin(9600); // open the serial port at 9600 bps:
     // primeiro definindo os pinos dos sensores e motores
     definirPinosSensores();
-    definirPinosMotores();
+    // definirPinosMotores();
     // Depois aguardando o sensor de início
-    aguardarSensorDeInicio();
+    // aguardarSensorDeInicio();
 }
+
 
 void loop () {
     lerSensores();
     definirMovimento();
     calcularPID();
-    // definirVelocidade();
     definirVelocidadePID();
-    movimentar();
+    // definirVelocidade();
+    // movimentar();
+    debugs();
 }
 
-/* ============== FUNÇÕES SETUP ============== */
+/* # ============== FUNÇÕES SETUP ============== */
 
+/* ## OK */
 
 void definirPinosSensores () { // Configura os pinos dos sensores como entrada
     for (int i = 0; i < numSensores; i++) {
@@ -84,12 +91,14 @@ void definirPinosMotores () { // Configura os pinos dos motores como saída
     for (int i = 0; i < numMotores; i++) {
         pinMode(pinosMotores[i], OUTPUT);
     }
+    // Define os pinos secundários do motor como LOW/GND(?)
+    digitalWrite(pinosMotores[2], LOW);
+    digitalWrite(pinosMotores[3], LOW);
 }
 
 void aguardarSensorDeInicio () { // Aguarda o sensor de início ser pressionado
-    const int pinoEnergiaReceptor = 13
+    const int pinoEnergiaReceptor = 13;
     const int pinoReceptor = 12;
-    IRrecv recIR(pinoReceptor);
     decode_results resultado;
 
     /* Daqui pra cima poderia ser externalizado */
@@ -99,14 +108,22 @@ void aguardarSensorDeInicio () { // Aguarda o sensor de início ser pressionado
 
     digitalWrite(pinoEnergiaReceptor, HIGH);
 
+    IRrecv recIR(pinoReceptor);
     recIR.enableIRIn();// Inicializar receptor IR
 
+    // Serial.print("Aguardando IR\n");
+
     while (!recIR.decode(&resultado)) {
+        // Serial.print(".");
         delay(10);
     }
+
+    // Serial.print("\nIR percebido");
 }
 
-/* ============== FUNÇÕES LOOP ============== */
+/* # ============== FUNÇÕES LOOP ============== */
+
+/* ## OK */
 
 void lerSensores () {
     // Lê os sensores e armazena os valores em um vetor
@@ -118,7 +135,6 @@ void lerSensores () {
         }
     }
 }
-
 
 void definirMovimento () {
     // Define o movimento do robô com base nas leituras dos sensores
@@ -135,6 +151,16 @@ void definirMovimento () {
     movimentoEscolhido += s5 * 1;
     // debugLeituraLinha();
 }
+
+void movimentar () {
+    // debugMovimentoMotor();
+    // Movimenta os motores com base no movimento escolhido
+    for (int i = 0; i < numMotores; i++) {
+        analogWrite(pinosMotores[i], velocidadeMotores[i]);
+    }
+}
+
+/* Velocidades Antigas */
 
 void definirVelocidadeMotores (float M1V1, float M1V2, float M2V1, float M2V2) { // Define a velocidade dos motores
     int velocidadeBase = 255;
@@ -173,53 +199,48 @@ void definirVelocidade () {
     }
 }
 
-void movimentar () {
-    // debugMovimentoMotor();
-    // Movimenta os motores com base no movimento escolhido
-    for (int i = 0; i < 2*numMotores; i++)
-    {
-        analogWrite(pinosMotores[i], velocidadeMotores[i]);
-    }
-}
-
 /* ================ VERSÃO PID ABAIXO ================ */
 
-void calculaErro () {
+void calcularErro () { // Talvez o erro seja um ponto de falha.
     erro = 0;
     switch (movimentoEscolhido) {
         case 10000: erro = -2.00;  break;
         case 11000: erro = -1.75;  break;
-        case 01000: erro = -1.50;  break;
-        case 01100: erro = -1.00;  break;
-        case 00100: erro = 0;      break;
-        case 00110: erro = 1.00;   break;
-        case 00010: erro = 1.50;   break;
-        case 00011: erro = 1.75;   break;
-        case 00001: erro = 2.00;   break;
+        case  1000: erro = -1.50;  break;
+        case  1100: erro = -1.00;  break;
+        case   100: erro = 0;      break;
+        case   110: erro = 1.00;   break;
+        case    10: erro = 1.50;   break;
+        case    11: erro = 1.75;   break;
+        case     1: erro = 2.00;   break;
         default:    erro = 0.00;   break;
     }
 }
 
-void calculaPID () {
-    calculaErro()
-//    if (erro == O) {
-//        I = 0;
-//    }
-    P = erro;
+void calcularPID () {
+    calcularErro();
+    
+    P = erro; // Get P term
+
+    // Get I term
+   if (erro == 0) {
+       I = 0;
+   }
     I = I + erro;
-    if (I > 255) {n
+    if (I > 255) {
         I = 255;
     } else if (I < -255) {
         I = -255;
     }
-    D = erro - erroAnterior;
-    PID = (kP * P) + (kI * I) + (kD * D);
+    D = erro - erroAnterior; // Get D term
     erroAnterior = erro;
+
+    PID = (kP * P) + (kI * I) + (kD * D); // Get PID value
 }
 
 
 
-void controle_motor () { //mudar aqui quando o sono passar 
+void definirVelocidadePID () { // Define a velocidade dos motores
     if (PID >= 0) {
         velesq = vel_B;
         veldir = vel_A - PID;
@@ -227,18 +248,30 @@ void controle_motor () { //mudar aqui quando o sono passar
         velesq = vel_B + PID;
         veldir = vel_A;
     }
-    digitalWrite(IN1, HIGH);
-    digitalWrite(IN2, LOW);
-    digitalWrite(IN3, HIGH);
-    digitalWrite(IN4, LOW);
-    analogWrite(PWM_A, veldir);
-    analogWrite(PWM_B, velesq);
+    // velesq = PID;
+
+    // digitalWrite(IN1, HIGH);
+    // digitalWrite(IN2, LOW);
+    // digitalWrite(IN3, HIGH);
+    // digitalWrite(IN4, LOW);
+    velocidadeMotores[0] = velesq;
+    velocidadeMotores[1] = veldir;
+    // analogWrite(PWM_A, veldir);
+    // analogWrite(PWM_B, velesq);
 }
 
 // ======== DEBUGS ========
 
+void debugs () {
+    // debugLeituraLinha();
+    Serial.print(movimentoEscolhido);
+    Serial.print("\t");
+    debugPID();
+    debugMovimentoMotor();
+    delay(500);
+}
 
-void debugLeituraLinha(){
+void debugLeituraLinha () {
     for (int i = 0; i < numSensores; i++)
     {
         Serial.print(leituras[i]);
@@ -249,31 +282,38 @@ void debugLeituraLinha(){
     Serial.print("\n");
 }
 
-void debugMovimentoMotor(){
+void debugMovimentoMotor () {
     int i = 0;
-    Serial.print("pino:");
-    Serial.print(pinosMotores[i+0]);
-    Serial.print(", velocidade:");
-    Serial.print(velocidadeMotores[i+0]);
-    Serial.print("\tpino:");
-    Serial.print(pinosMotores[i+1]);
-    Serial.print(", velocidade:");
-    Serial.print(velocidadeMotores[i+1]);
-    Serial.print("\t\tpino:");
-    Serial.print(pinosMotores[i+2]);
-    Serial.print(", velocidade:");
-    Serial.print(velocidadeMotores[i+2]);
-    Serial.print("\tpino:");
-    Serial.print(pinosMotores[i+3]);
-    Serial.print(", velocidade:");
-    Serial.print(velocidadeMotores[i+3]);
-    Serial.print("\n");
+    Serial.print("Vel(A, B): (");
+    Serial.print(velocidadeMotores[0]);
+    Serial.print(", ");
+    Serial.print(velocidadeMotores[1]);
+    Serial.print(")\n");
 }
 
-void debugImprimirVelocidades (){
+void debugImprimirVelocidades () {
     for (int i = 0; i < 2*numMotores; i++){
         Serial.print(velocidadeMotores[i]);
         Serial.print("\t");
     }
     Serial.print("\n");
+}
+
+void debugPID () {
+    Serial.print("(P, I, D): (");
+    Serial.print(P);
+    Serial.print(", ");
+    Serial.print(I);
+    Serial.print(", ");
+    Serial.print(D);
+    Serial.print(")\tPID: ");
+    Serial.print(PID);
+    Serial.print("\t(Kp, Ki, Kd): (");
+    Serial.print(kP);
+    Serial.print(",");
+    Serial.print(kI);
+    Serial.print(",");
+    Serial.print(kD);
+    Serial.print(")");
+    Serial.print("\t\t");
 }
