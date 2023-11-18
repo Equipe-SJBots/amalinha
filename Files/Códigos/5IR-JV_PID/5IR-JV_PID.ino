@@ -44,15 +44,17 @@ int movimentoEscolhido = 0; // Define a variável de escolha para movimentação
 int leituras[numSensores]; // Define as variáveis para leitura dos sensores
 int velocidadeMotores[numMotores] = {0, 0};
 
-int baseSpeed = 100;
+int baseSpeed = 150;
 int vel_A = baseSpeed, vel_B = baseSpeed;
 int velesq = 0, veldir = 0;
 
 // Variáveis PID
 float erro = 0, erroAnterior = 0;
-float PID = 0;
-float P = 0, I = 0, D = 0;
-float kP = 20, kI = 5, kD = 20;
+double PID = 0;
+double P = 0, I = 0, D = 0;
+// float kP = 0.07, kI = 0.0008, kD = 0.6; // Link project hub
+float kP = 0.075, kI = 0.0008, kD = 0.6; // Link thorlabs
+int testing = 0;
 
 //Sensor de início
 
@@ -69,9 +71,10 @@ void setup () {
     definirPinosSensores();
     definirPinosMotores();
     // Depois aguardando o sensor de início
-    aguardarSensorDeInicio();
+    if (!testing) {
+      aguardarSensorDeInicio();
+    }
 }
-
 
 void loop () {
     lerSensores();
@@ -79,7 +82,9 @@ void loop () {
     calcularPID();
     definirVelocidadePID();
     // definirVelocidade();
-    movimentar();
+    if (!testing) {
+      movimentar();
+    }
     debugs();
 }
 
@@ -167,15 +172,15 @@ void movimentar () {
 void calcularErro () { // Talvez o erro seja um ponto de falha.
     erro = 0;
     switch (movimentoEscolhido) {
-        case 10000: erro = -2.00;  break;
-        case 11000: erro = -1.75;  break;
-        case  1000: erro = -1.50;  break;
-        case  1100: erro = -1.00;  break;
+        case 10000: erro = -3500;  break;
+        case 11000: erro = -2625;  break;
+        case  1000: erro = -1750;  break;
+        case  1100: erro = -875;  break;
         case   100: erro = 0;      break;
-        case   110: erro = 1.00;   break;
-        case    10: erro = 1.50;   break;
-        case    11: erro = 1.75;   break;
-        case     1: erro = 2.00;   break;
+        case   110: erro = 875;   break;
+        case    10: erro = 1750;   break;
+        case    11: erro = 2625;   break;
+        case     1: erro = 3500;   break;
         default:    erro = 0.00;   break;
     }
 }
@@ -190,17 +195,16 @@ void calcularPID () {
        I = 0;
    }
     I = I + erro;
-    if (I > 255) {
-        I = 255;
-    } else if (I < -255) {
-        I = -255;
-    }
     D = erro - erroAnterior; // Get D term
     erroAnterior = erro;
 
     PID = (kP * P) + (kI * I) + (kD * D); // Get PID value
 }
 
+
+int velocidadePIDfilter (int velocidade) {
+  return (velocidade < 0) ? 0 : (velocidade > 255 ) ? 255 : velocidade; 
+}
 
 
 void definirVelocidadePID () { // Define a velocidade dos motores
@@ -212,12 +216,8 @@ void definirVelocidadePID () { // Define a velocidade dos motores
         veldir = vel_A;
     }
 
-    if (velesq < 0) {
-      velesq = 0;
-    }
-    if (veldir < 0) {
-      veldir = 0;
-    }
+    velesq = velocidadePIDfilter(velesq);
+    veldir = velocidadePIDfilter(veldir);
 
     velocidadeMotores[0] = velesq;
     velocidadeMotores[1] = veldir;
@@ -233,7 +233,7 @@ void debugs () {
     Serial.print("\t");
     debugPID();
     debugMovimentoMotor();
-    delay(500);
+    // delay(500);
 }
 
 void debugLeituraLinha () {
