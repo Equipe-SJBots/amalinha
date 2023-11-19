@@ -12,10 +12,7 @@ void setup() {
 int getValorBT() {
     while (mySerial.available() > 0) {
         c = mySerial.read();
-        if (c == '\n') {
-            Serial.print(informacaoRecebida);
-            informacaoRecebida = "";
-        } else {
+        if (c != '\n') {
             informacaoRecebida += c;
         }
     }
