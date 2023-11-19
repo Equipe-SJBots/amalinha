@@ -6,6 +6,18 @@
     No Loop, o código lê os sensores, define o movimento do robô com base nas leituras e movimenta os motores.
 */
 
+#include <SoftwareSerial.h>
+
+// HC05
+
+const int pinosHC05[4] = {4, 5, 6, 7};
+
+SoftwareSerial mySerial(pinosHC05[1], pinosHC05[0]); // (TX, RX) - HC05 (T-Transmits; R-Receives) - BT-Transmits, Arduino_Receives
+
+String informacaoRecebida = "";
+char c;
+
+
 #include <IRremote.h> // Inclusão de bibliotecass
 
 // O sensor Ir retorna 1 quando vê branco.
@@ -26,7 +38,7 @@ int linhaPreta = 0; // deve ser 1 se estiver lendo linha preta
 
 // Define os pinos dos motores
 const int numMotores = 2;
-int pinosMotores[2*numMotores] = {4, 6, 3, 7};
+int pinosMotores[2*numMotores] = {9, 10, 8, 11};;
 /*
 | Arduino | Ponte H                 | Local do Motor |
 | Pino    | Entrada | Motor | Sinal | Local do Motor |
@@ -53,7 +65,7 @@ float erro = 0, erroAnterior = 0;
 double PID = 0;
 double P = 0, I = 0, D = 0;
 // float kP = 0.07, kI = 0.0008, kD = 0.6; // Link project hub
-float kP = 70, kI = 0.05, kD = 10.0; // Link thorlabs
+float kP = 0.075, kI = 0.0008, kD = 0.6; // Link thorlabs
 int testing = 1;
 
 //Sensor de início
@@ -64,13 +76,14 @@ decode_results resultado;
 IRrecv recIR(pinoReceptor);
 
 
-
 void setup () {
     // Executa apenas uma vez
     Serial.begin(9600); // open the serial port at 9600 bps:
+    mySerial.begin(9600);
     // primeiro definindo os pinos dos sensores e motores
     definirPinosSensores();
     definirPinosMotores();
+    definirPinosHC05();
     // Depois aguardando o sensor de início
     if (!testing) {
       aguardarSensorDeInicio();
@@ -86,10 +99,57 @@ void loop () {
     if (!testing) {
       movimentar();
     }
+    manualAdjustingPID();
     debugs();
 }
 
 /* # ============== FUNÇÕES SETUP ============== */
+
+/* Configuring BT */
+
+void definirPinosHC05 () {
+    pinMode(pinosHC05[2], OUTPUT);
+    pinMode(pinosHC05[3], OUTPUT);
+    digitalWrite(pinosHC05[2], LOW);
+    digitalWrite(pinosHC05[3], HIGH);
+}
+
+
+/* Adjusting PID */
+
+int getValorBT() {
+    while (mySerial.available() > 0) {
+        c = mySerial.read();
+        if (c != '\n') {
+            informacaoRecebida += c;
+        }
+    }
+    return informacaoRecebida.toInt();
+}
+
+void manualAdjustingPID () {
+    int myValue = getValorBT();
+    int coeficiente = myValue % 10000;
+    int valor = myValue - coeficiente;
+    kP = valor / 10000;
+    kI = coeficiente / 100;
+    kD = coeficiente % 100;
+    
+    int valorCombinadoBT = getValorBT();
+    int valorBT;
+    coeficiente = valorBT % 10000;
+    int valorSeparadoBT = valorBT - coeficiente * 10000;
+    Serial.print("(Coeficiente: Valor): (");
+    Serial.print(coeficiente);
+    Serial.print(",");
+    Serial.print(valorSeparadoBT);
+    Serial.print(")");
+    switch (coeficiente) {
+        case 1: kP = 1/valor; break;
+        case 2: kI = 1/valor; break;
+        case 3: kD = 1/valor; break;
+    }
+}
 
 /* ## OK */
 
@@ -126,15 +186,14 @@ void aguardarSensorDeInicio () { // Aguarda o sensor de início ser pressionado
         delay(10);
     }
 
-    // Serial.print("\nIR percebido");
+    Serial.print("\nIR percebido");
 }
 
 /* # ============== FUNÇÕES LOOP ============== */
 
 /* ## OK */
 
-void lerSensores () {
-    // Lê os sensores e armazena os valores em um vetor
+void lerSensores () { // Lê os sensores e armazena os valores em um vetor
     // É esperado que apenas a linha lida esteja com o valor 1.
     for (int i = 0; i < numSensores; i++) {
         leituras[i] = digitalRead(pinosSensores[i]);
@@ -160,9 +219,7 @@ void definirMovimento () {
     // debugLeituraLinha();
 }
 
-void movimentar () {
-    // debugMovimentoMotor();
-    // Movimenta os motores com base no movimento escolhido
+void movimentar () { // Movimenta os motores com base no movimento escolhido
     for (int i = 0; i < numMotores; i++) {
         analogWrite(pinosMotores[i], velocidadeMotores[i]);
     }
@@ -172,31 +229,17 @@ void movimentar () {
 
 void calcularErro () { // Talvez o erro seja um ponto de falha.
     erro = 0;
-    /* Erro grande */
-    // switch (movimentoEscolhido) {
-        // case 10000: erro = -3500;  break;
-        // case 11000: erro = -2625;  break;
-        // case  1000: erro = -1750;  break;
-        // case  1100: erro = -875;  break;
-        // case   100: erro = 0;      break;
-        // case   110: erro = 875;   break;
-        // case    10: erro = 1750;   break;
-        // case    11: erro = 2625;   break;
-        // case     1: erro = 3500;   break;
-        // default:    erro = 0.00;   break;
-    // }
-    /* Erro Pequeno */
     switch (movimentoEscolhido) {
-        case 10000: erro = -4;  break;
-        case 11000: erro = -3;  break;
-        case  1000: erro = -2;  break;
-        case  1100: erro = -1;  break;
+        case 10000: erro = -3500;  break;
+        case 11000: erro = -2625;  break;
+        case  1000: erro = -1750;  break;
+        case  1100: erro = -875;  break;
         case   100: erro = 0;      break;
-        case   110: erro = 1;   break;
-        case    10: erro = 2;   break;
-        case    11: erro = 3;   break;
-        case     1: erro = 4;   break;
-        default:    erro = 0;   break;
+        case   110: erro = 875;   break;
+        case    10: erro = 1750;   break;
+        case    11: erro = 2625;   break;
+        case     1: erro = 3500;   break;
+        default:    erro = 0.00;   break;
     }
 }
 
@@ -252,8 +295,7 @@ void debugs () {
 }
 
 void debugLeituraLinha () {
-    for (int i = 0; i < numSensores; i++)
-    {
+    for (int i = 0; i < numSensores; i++) {
         Serial.print(leituras[i]);
         Serial.print("\t");
     }
