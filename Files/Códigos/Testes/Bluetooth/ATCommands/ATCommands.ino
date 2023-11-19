@@ -1,12 +1,11 @@
-#include <SoftwareSerial.h>
-SoftwareSerial mySerial(2, 3); // (TX, RX) - HC05 (T-Transmits; R-Receives) - BT-Transmits, Arduino_Receives
 void setup() {
   Serial.begin(9600);
-  mySerial.begin(9600);
-  Serial.println("ATcommand");  //ATcommand Start
+  Serial.print("AT\n");  //ATcommand Start
+  Serial.print("AT\r");  //ATcommand Start
+  Serial.print("AT\r\n");  //ATcommand Start
 }
 void loop() {
-  if (mySerial.available()){
-    Serial.write(mySerial.read());
+  if (Serial.available()){
+    Serial.write(Serial.read());
   }
 }

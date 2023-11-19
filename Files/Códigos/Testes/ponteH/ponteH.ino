@@ -1,7 +1,7 @@
 
 // Define os pinos dos motores
 int const quantidadeMotores = 4;
-int pinosMotores[quantidadeMotores] = {7, 3, 6, 4};
+int pinosMotores[quantidadeMotores] = {4, 6, 3, 7};
 
 void setup() {
     // Inicializa os pinos dos motores como saída

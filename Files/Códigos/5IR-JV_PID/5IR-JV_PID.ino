@@ -37,31 +37,34 @@ int pinosMotores[2*numMotores] = {4, 6, 3, 7};
 | 3       | IN4     | B     | -     | Esquerda       |
 */
 
-// Define o pino do sensor de início
-const int pinoSensorDeInicio = 12;
-
 int movimentoEscolhido = 0; // Define a variável de escolha para movimentação dos motores
 int leituras[numSensores]; // Define as variáveis para leitura dos sensores
 int velocidadeMotores[numMotores] = {0, 0};
 
-int baseSpeed = 150;
-int vel_A = baseSpeed, vel_B = baseSpeed;
-int velesq = 0, veldir = 0;
 
 // Variáveis PID
 float erro = 0, erroAnterior = 0;
 double PID = 0;
 double P = 0, I = 0, D = 0;
-// float kP = 0.07, kI = 0.0008, kD = 0.6; // Link project hub
-float kP = 70, kI = 0.05, kD = 10.0; // Link thorlabs
-int testing = 1;
 
+/* MUDAR */
+
+int testing = 0;
+int baseSpeed = 250;
+
+// float kP = 0.07, kI = 0.0008, kD = 0.6; // Link project hub
+float kP = 250, kI = 4, kD = 0; // Erro de -1 a 1
+// float kP = 150, kI = 0, kD = 0; // Link thorlabs
+
+
+int vel_A = baseSpeed, vel_B = baseSpeed;
+int velesq = 0, veldir = 0;
 //Sensor de início
 
 const int pinoEnergiaReceptor = 13;
 const int pinoReceptor = 12;
-decode_results resultado;
 IRrecv recIR(pinoReceptor);
+decode_results resultado;
 
 
 
@@ -85,8 +88,9 @@ void loop () {
     // definirVelocidade();
     if (!testing) {
       movimentar();
-    }
+    } else {
     debugs();
+    }
 }
 
 /* # ============== FUNÇÕES SETUP ============== */
@@ -111,7 +115,6 @@ void definirPinosMotores () { // Configura os pinos dos motores como saída
 void aguardarSensorDeInicio () { // Aguarda o sensor de início ser pressionado
 
     /* Daqui pra cima poderia ser externalizado */
-
     pinMode(pinoEnergiaReceptor, OUTPUT);
     pinMode(pinoReceptor, INPUT);
 
@@ -173,20 +176,20 @@ void movimentar () {
 void calcularErro () { // Talvez o erro seja um ponto de falha.
     erro = 0;
     /* Erro grande */
-    // switch (movimentoEscolhido) {
-        // case 10000: erro = -3500;  break;
-        // case 11000: erro = -2625;  break;
-        // case  1000: erro = -1750;  break;
-        // case  1100: erro = -875;  break;
-        // case   100: erro = 0;      break;
-        // case   110: erro = 875;   break;
-        // case    10: erro = 1750;   break;
-        // case    11: erro = 2625;   break;
-        // case     1: erro = 3500;   break;
-        // default:    erro = 0.00;   break;
-    // }
+    /* switch (movimentoEscolhido) {
+        case 10000: erro = -3500;  break;
+        case 11000: erro = -2625;  break;
+        case  1000: erro = -1750;  break;
+        case  1100: erro = -875;  break;
+        case   100: erro = 0;      break;
+        case   110: erro = 875;   break;
+        case    10: erro = 1750;   break;
+        case    11: erro = 2625;   break;
+        case     1: erro = 3500;   break;
+        default:    erro = 0.00;   break;
+    } */
     /* Erro Pequeno */
-    switch (movimentoEscolhido) {
+    /* switch (movimentoEscolhido) {
         case 10000: erro = -4;  break;
         case 11000: erro = -3;  break;
         case  1000: erro = -2;  break;
@@ -197,7 +200,21 @@ void calcularErro () { // Talvez o erro seja um ponto de falha.
         case    11: erro = 3;   break;
         case     1: erro = 4;   break;
         default:    erro = 0;   break;
+    } */
+    /* Erro Normalizado */
+    switch (movimentoEscolhido) {
+        case 10000: erro = -1.00;  break;
+        case 11000: erro = -0.75;  break;
+        case  1000: erro = -0.50;  break;
+        case  1100: erro = -0.25;  break;
+        case   100: erro = 0.00;      break;
+        case   110: erro = 0.25;   break;
+        case    10: erro = 0.50;   break;
+        case    11: erro = 0.75;   break;
+        case     1: erro = 1.00;   break;
+        default:    erro = 0.00;   break;
     }
+
 }
 
 void calcularPID () {
@@ -279,21 +296,38 @@ void debugImprimirVelocidades () {
     Serial.print("\n");
 }
 
+void debugPIDvalues() {
+  Serial.print("(P, I, D): ");
+  Serial.print("(");
+  Serial.print(P, 4);
+  Serial.print(", ");
+  Serial.print(I, 4);
+  Serial.print(", ");
+  Serial.print(D, 4);
+  Serial.print(")\t");
+}
+
+void debugkPIDvalues() {
+  Serial.print("(Kp, Ki, Kd): ");
+  Serial.print("(");
+  Serial.print(kP);
+  Serial.print(", ");
+  Serial.print(kI);
+  Serial.print(", ");
+  Serial.print(kD);
+  Serial.print(")\t");
+}
+
+void debugPIDmainValue () {
+  Serial.print("(PID): ");
+  Serial.print("(");
+  Serial.print(PID, 5);
+  Serial.print(")\t");
+
+}
+
 void debugPID () {
-    Serial.print("(P, I, D): (");
-    Serial.print(P);
-    Serial.print(", ");
-    Serial.print(I);
-    Serial.print(", ");
-    Serial.print(D);
-    Serial.print(")\tPID: ");
-    Serial.print(PID);
-    Serial.print("\t(Kp, Ki, Kd): (");
-    Serial.print(kP);
-    Serial.print(",");
-    Serial.print(kI);
-    Serial.print(",");
-    Serial.print(kD);
-    Serial.print(")");
-    Serial.print("\t\t");
+  debugkPIDvalues();
+  debugPIDvalues();
+  debugPIDmainValue();
 }
